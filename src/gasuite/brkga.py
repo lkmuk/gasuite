@@ -60,9 +60,10 @@ def _BRKGA_evolve_perm(sorted_pop: np.ndarray, pop_sizes: BRKGA_Population_size,
     return new_pop
 
 def _BRKGA_evolve_GTSP(nums_cities: list[int], sorted_pop: np.ndarray, pop_sizes: BRKGA_Population_size, crossover_bias : int, rng: np.random.Generator) -> np.ndarray:
-    assert len(nums_cities) == len(sorted_pop) == pop_sizes.total
+    assert sorted_pop.shape == (pop_sizes.total, len(nums_cities))
     new_pop = _BRKGA_evolve_perm(sorted_pop, pop_sizes, crossover_bias, rng)
     new_pop[-pop_sizes.mutant:] += generate_whichCity(rng, pop_sizes.mutant, nums_cities)
+    return new_pop
 
 def BRKGA_TSP(num_cities: int, individual_cost_fnc: Callable[[np.ndarray], float], 
               pop_sizes: BRKGA_Population_size, tc: Termination_criteria, 
