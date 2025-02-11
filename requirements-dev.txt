@@ -1,0 +1,9 @@
+-e .
+# -r requirements-minimal.txt
+
+matplotlib
+ipython
+ipykernel
+
+pytest
+
