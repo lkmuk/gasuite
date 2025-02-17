@@ -14,7 +14,9 @@ from gasuite.brkga import (
 from gasuite.problems.geometric_tsp import eval_tour_cost
 from pytest import approx
 import matplotlib.pyplot as plt
-
+from functools import partial
+from typing import OrderedDict
+from time import perf_counter
 
 # the same one used in the notebook
 xy_points = np.array([
@@ -34,21 +36,24 @@ xy_points = np.array([
 
 true_global_min = 19.5189
 
-solver_BRKGA_TSP_prms = dict(
+solver_BRKGA_TSP_prms = OrderedDict(
     num_cities = len(xy_points),
-    individual_cost_fnc = lambda tour: eval_tour_cost(tour, xy_points),
+    individual_cost_fnc = partial(eval_tour_cost, point_cloud = xy_points),
     pop_sizes = BRKGA_Population_size(
         total = 200, elite=2, mutant=50),
-    crossover_bias = 0.6,
     tc = Termination_criteria(
         max_num_gen=500, 
         earlyTerm_improvement_convergence=1e-6, 
-        earlyTerm_patience=30) # in actual uses, you shall consider a larger value
+        earlyTerm_patience=30), # in actual uses, you shall consider a larger value
+    crossover_bias = 0.6,
 )
 
-def test_run_multiple_times(plt_show = False):
-    seeds = 5*np.arange(10)
-    computed_results = run_multiple_times(BRKGA_TSP, seeds, **solver_BRKGA_TSP_prms)
+def _test_run_multiple_times(num_process, plt_show = False):
+    seeds = 5*np.arange(5) # for research purposes, use more seeds
+    t0 = perf_counter()
+    computed_results = run_multiple_times(BRKGA_TSP, seeds, num_proc=num_process, **solver_BRKGA_TSP_prms)
+    t1 = perf_counter()
+    print(f"{len(seeds)} runs using {num_process:d} process(es) took {(t1-t0):.3f} sec") 
     assert len(computed_results) == len(seeds)
     
     summary = extract_multirun_cost_vals_stats(computed_results)
@@ -60,5 +65,12 @@ def test_run_multiple_times(plt_show = False):
         ax.set_title("Results from multiple runs of BRKGA")
         plt.show()
 
+def test_run_multiple_times_singleProc():
+    _test_run_multiple_times(num_process=1, plt_show=False)
+def test_run_multiple_times_4Proc():
+    _test_run_multiple_times(num_process=4, plt_show=False)
+
+
 if __name__ == "__main__":
-    test_run_multiple_times(plt_show=True)
+    _test_run_multiple_times(num_process=4, plt_show=False)
+    _test_run_multiple_times(num_process=1, plt_show=True)

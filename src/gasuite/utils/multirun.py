@@ -1,19 +1,43 @@
 from .optim import Cost_vals_stats, Solution_report
 import numpy as np
 from multiprocessing.pool import Pool
+from functools import partial
 
-from typing import Callable
+from typing import Callable, OrderedDict, Any
 import matplotlib.axes
 
-def run_multiple_times(solver_fnc: Callable, seeds: list[int], **other_solver_prms) -> list[Solution_report]:
-    # just to ensure it's really integers
-    seeds = np.array(seeds, dtype=int)
+def run_multiple_times(solver_fnc: Callable[[Any], Solution_report], seeds: list[int], num_proc = 1, **solver_main_prms: OrderedDict) -> list[Solution_report]:
+    """Running the same solver configuration with different seeds
+    
+    For research and for some deployment, a stochastic solver, e.g., 
+    a Genetic Algorithm, with the same configuration shall be 
+    run several times. We can save the wall-clock execution time 
+    by parallelize the runs.
+      
+    Quick tip: try to **avoid** any lambda functions in 
+    `solver_fnc` and `solver_main_prms`.
+    Use `functools.partial` instead. See `test_multirun.py`.
+    
+    :param solver_fnc: a stochastic optimization implementation
+            we expect its last argument is a numpy random generator object.
+            We also expect it to output a `Solution_report` object
+    :param seeds: each run means one seed (each run should have a different seed)
+    :param num_proc: number of parallel running process
+            set it to 1 for single thread, 
+            set it to higher numbers {2, 3, ..., num_CPU_cores} for multi-processing
+    :param solver_main_prms: the parameters for `solver_fnc` (other than the rng)
+            We expect this to be in the **same order** as the interface of `solver_fnc`.
+            So you should use OrderDict
+    :returns: a list of Solution_report
+    """
     assert len(set(seeds)) == len(seeds), "detected duplicate seeds"
-    def runner(seed) -> Solution_report:
-        return solver_fnc(**other_solver_prms, rng=np.random.default_rng(seed))
-    # with Pool(len(seeds)) as p:
-    #     results = p.map(runner, seeds)
-    results = [runner(seed) for seed in seeds] # single thread version
+    rngs = [np.random.default_rng(s) for s in seeds]
+    runner = partial(solver_fnc, *solver_main_prms.values())
+    if num_proc == 1:
+        results = [runner(g) for g in rngs] # single thread version
+    else:
+        with Pool(len(rngs)) as p:
+            results = p.map(runner, rngs)
     return results
 
 def _pad_by_holding_last_value(array1d: np.ndarray, total_output_length: int) -> np.ndarray:
