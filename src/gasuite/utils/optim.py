@@ -78,6 +78,8 @@ class Cost_vals_stats:
         ax.plot(xdata, self.percentile75, label="pct75", c='cyan', ls="-", lw=lw, **kwargs)
         ax.plot(xdata, self.mean, label="mean", c='green', ls="-", lw=lw, **kwargs)
         ax.plot(xdata, self.percentile25, label="pct25", c='orange', ls="-", lw=lw, **kwargs)
+        ax.plot(xdata, self.best, c='r', ls="-.", lw=1, label="best")
+
         if true_optim:
             ax.plot([0, self.num_completed_iterations], [true_optim]*2, c='gray', lw=2, ls="--", label="true optimum")
         ax.grid()
